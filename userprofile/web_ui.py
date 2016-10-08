@@ -96,7 +96,6 @@ class UserProfileModule(Component):
     def __init__(self):
         # bind the 'userprofile' catalog to the locale directory
         add_domain(self.env.path, resource_filename(__name__, 'locale'))
-        print(_('Now avatar').encode('utf-8'))
 
     # ITemplateProvider methods
     def get_htdocs_dirs(self):
