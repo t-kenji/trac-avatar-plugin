@@ -1,0 +1,47 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://genshi.edgewall.org/"
+      xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="prefs.html" />
+  <py:match path="form[@id='userprefs']">
+    <form py:attrs="select('@*')"
+          enctype="multipart/form-data">${select("*|text()")}</form>
+  </py:match>
+  <head>
+    <title>${_('Avatar')}</title>
+
+    <style type="text/css">
+    .user_profile {
+        height: 200px;
+    }
+    .user_profile_avatar {
+        float: left;
+        margin-top: -1em;
+        margin-right: 20px;
+    }
+    img.user_profile_avatar_full {
+        width: 128px;
+        height: 128px;  
+    }
+    .user_profile_fields {
+        margin-left: 20px;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="user_profile">
+      <div class="user_profile_avatar">
+        <h2>${_('Now avatar')}</h2>
+        <img src="$user.avatar_href" class="user_profile_avatar_full" /><br />
+        <input type="checkbox" name="user_profile_avatar_initialize" id="user_profile_avatar_initialize" />
+        <label for="user_profile_avatar_initialize">${_('Initialize avatar')}</label>
+      </div>
+      <div class="user_profile_fields">
+          <h2>${_('Change avatar')}</h2>
+        <input type="file" name="user_profile_avatar" id="user_profile_avatar" />
+      </div>
+    </div>
+  </body>
+</html>
