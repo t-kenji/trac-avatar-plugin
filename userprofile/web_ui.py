@@ -32,6 +32,7 @@ import sys
 import io
 import re
 import struct
+import hashlib
 
 from pkg_resources import resource_filename
 
@@ -115,11 +116,15 @@ class UserProfileModule(Component):
             user = match.groups(1)[0]
 
         if user:
-            for filepath, in self.env.db_query("""
-                                SELECT value FROM session_attribute
-                                WHERE sid=%s AND name='avatar'
-                                """,
-                                (user,)):
+            for sid, filepath, in self.env.db_query("""
+                                SELECT sid, value FROM session_attribute
+                                WHERE name='avatar'
+                                """):
+                if filepath is None \
+                   or (sid != user \
+                       and hashlib.md5(sid.lower()).hexdigest() != user):
+                    continue
+                
                 image = Image.open(filepath, 'r')
                 mime_type = 'image/{}'.format(image.format)
 
