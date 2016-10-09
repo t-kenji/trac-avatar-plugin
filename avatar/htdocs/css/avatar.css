@@ -1,0 +1,37 @@
+img.avatar {
+  box-shadow: 1px 1px 2px #ccc;
+}
+
+img.avatar.metanav-avatar {
+  margin-right: 10px;
+}
+
+img.avatar.ticket-reporter {
+  float:left;
+  margin:0 10px 10px 0px;
+}
+
+img.avatar.ticket-comment {
+  margin:0 5px 5px 0;
+}
+
+img.avatar.ticket-comment-diff {
+  margin:0 5px 5px 0;
+}
+
+img.avatar.browser-lineitem {
+  margin:0 5px 0 0;
+}
+
+img.avatar.timeline {
+  margin:2px 5px 0 0;
+}
+
+img.avatar.browser-changeset {
+  margin:3px 10px 0px 0px;
+}
+
+td.avatar.prefs-avatar {
+  vertical-align:middle;
+  white-space:nowrap;
+}

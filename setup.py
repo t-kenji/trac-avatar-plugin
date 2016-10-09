@@ -32,13 +32,13 @@ from setuptools import find_packages, setup
 version = '0.0.1'
 
 setup(
-    name = 'TracUserProfilePlugin',
+    name = 'TracAvatarPlugin',
     version = version,
-    keywords = 'trac plugin user profile ',
+    keywords = 'trac plugin avatar gravatar libravatar',
     author = 't-kenji',
     author_email = 'protect.2501@gmail.com',
-    url = 'https://github.com/t-kenji/trac-user-profile-plugin',
-    description = 'User profile for Trac',
+    url = 'https://github.com/t-kenji/trac-avatar-plugin',
+    description = 'Avatar icon for Trac',
     license = 'BSD',
 
     install_requires = [
@@ -48,14 +48,16 @@ setup(
 
     packages = find_packages(exclude=['*.tests*']),
     package_data = {
-        'userprofile': [
+        'avatar': [
             'locale/*/LC_MESSAGES/*.mo',
+            'htdocs/*.js',
+            'htdocs/*.css',
             'templates/*.html',
         ],
     },
     entry_points = {
         'trac.plugins': [
-            'userprofile.web_ui = userprofile.web_ui',
+            'avatar.web_ui = avatar.web_ui',
         ]
     }
 )

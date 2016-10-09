@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TracUserProfilePlugin 0.0.x\n"
+"Project-Id-Version: TracAvatarPlugin 0.0.x\n"
 "Report-Msgid-Bugs-To: protect.2501@gmail.com\n"
 "POT-Creation-Date: 2016-09-28 00:00+0000\n"
 "PO-Revision-Date: 2016-10-08 15:47+0900\n"
@@ -19,19 +19,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.3.4\n"
 
-#: userprofile/templates/prefs_avatar.html:13
+#: avatar/templates/prefs_avatar.html:13
 msgid "Avatar"
 msgstr "アバター"
 
-#: userprofile/templates/prefs_avatar.html:18
+#: avatar/templates/prefs_avatar.html:18
 msgid "Now avatar"
 msgstr "現在のアバター"
 
-#: userprofile/templates/prefs_avatar.html:21
+#: avatar/templates/prefs_avatar.html:21
 msgid "Initialize avatar"
 msgstr "アバターを初期化する"
 
-#: userprofile/templates/prefs_avatar.html:24
+#: avatar/templates/prefs_avatar.html:24
 msgid "Change avatar"
 msgstr "アバターの変更"
 

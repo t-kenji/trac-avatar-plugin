@@ -1,26 +1,22 @@
-Trac User Profile Plugin
+Trac Avatar Plugin
 ==========================
 
 Description
 -----------
 
-Custom user prpfile for Trac.
-
-Supported
-
-1. Avator setting
+Avatar for Trac.
 
 Install
 -------
 
 Run the following command::
 
-    pip install trac-user-profile-plugin
+    pip install trac-avatar-plugin
 
 Add the following to your trac conf::
 
     [components]
-    userprofile.* = enabled
+    avatar.* = enabled
 
 Usage
 -----
