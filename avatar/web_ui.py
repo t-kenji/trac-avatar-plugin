@@ -52,11 +52,13 @@ from genshi.filters.transform import Transformer
 from genshi.builder import tag
 
 from image import PictureAvatar, InitialAvatar
+from backend import AvatarBackend
 
 _, tag_, N_, add_domain = domain_functions('avatar',
     '_', 'tag_', 'N_', 'add_domain')
 
 class AvatarModule(Component):
+
     implements(ITemplateStreamFilter, ITemplateProvider)
 
     ticket_reporter_size = Option('avatar', 'ticket_reporter_size', default='60')
@@ -76,63 +78,26 @@ class AvatarModule(Component):
     search_results_size = Option('avatar', 'search_results_size', default='20')
     prefs_form_size = Option('avatar', 'prefs_form_size', default='40')
     metanav_size = Option('avatar', 'metanav_size', default='30')
-    default = Option('avatar', 'avatar_default', default='default',
-                     doc="The default value to pass along to avatar to "
-                         "use if the email address does not match.")
-    backend = Option('avatar', 'backend', default='built-in',
+    select_backend = Option('avatar', 'backend', default='built-in',
                      doc="The name of the avatar service to use as a "
                          "backend.  Currently built-in, gravatar and libravatar "
                          "are supported.")
 
-    # A mapping of possible backends to their peculiarities
-    external_backends = {
-        'gravatar': {
-            'url': 'gravatar.com',
-            'base': 'http://www.gravatar.com/avatar/',
-            'base_ssl': 'https://gravatar.com/avatar/',
-        },
-        'libravatar': {
-            'url': 'libravatar.org',
-            'base': 'http://cdn.libravatar.org/avatar/',
-            'base_ssl': 'https://seccdn.libravatar.org/avatar/',
-        },
-    }
-
-    backends = {}
-
     def __init__(self):
-        abs_href = self.env.abs_href()
-        match = re.match(r'https?://(?P<domain>[\w\d\.\-_\:]+)(?P<subdirectory>/[\w\d\.\-_/]*)?', abs_href)
-        if match.lastgroup == 'subdirectory':
-            url = '{}{}/prefs/avatar'.format(match.group('domain'), match.group('subdirectory'))
-            base = 'http://{}{}/avatar/'.format(match.group('domain'), match.group('subdirectory'))
-            base_ssl = 'https://{}{}/avatar/'.format(match.group('domain'), match.group('subdirectory'))
-        else:
-            url = '{}/prefs/avatar'.format(match.group('domain'))
-            base = 'http://{}/avatar/'.format(match.group('domain'))
-            base_ssl = 'https://{}/avatar/'.format(match.group('domain'))
-
-        builtin = {
-            'url': url,
-            'base': base,
-            'base_ssl': base_ssl,
-        }
-        self.backends.update({ 'built-in': builtin })
-        self.backends.update(self.external_backends)
 
         if not self.env.is_component_enabled(AvatarProvider):
-            if self.backend == 'built-in':
+            if self.select_backend == 'built-in':
                 self.config.set('avatar', 'backend', 'gravatar')
+
+        self.backend = AvatarBackend(self.env, self.config)
 
     def filter_stream(self, req, method, filename, stream, data):
         filter_ = []
-        author_data = {}
         context = {
-            'is_https': req.base_url.startswith("https://"),
-            'author_data': author_data,
             'data': data,
             'query': req.query_string,
         }
+        self.backend.clear_auth_data()
 
         filter_.extend(self._metanav(req, context))
 
@@ -152,13 +117,13 @@ class AvatarModule(Component):
             filter_.extend(self._wiki_filter(context))
         elif req.path_info.startswith('/attachment'):
             filter_.extend(self._attachment_filter(context))
-        elif self.backend != 'built-in' and req.path_info == '/prefs':
+        elif self.select_backend != 'built-in' and req.path_info == '/prefs':
             filter_.extend(self._prefs_filter(context))
 
         if 'attachments' in data and data.get('attachments', {}).get('attachments'):
             filter_.extend(self._page_attachments_filter(context))
 
-        self._lookup_email(author_data)
+        self.backend.lookup_author_data()
         for f in filter_:
             if f is not None:
                 stream |= f
@@ -172,19 +137,6 @@ class AvatarModule(Component):
     def get_templates_dirs(self):
         return []
 
-    def _generate_avatar(self, context, author, class_, size):
-        author_data = context['author_data']
-        email_hash = author_data.get(author, None) or self._avatar_slug(author)
-        if context['is_https']:
-            href = self.backends[self.backend]['base_ssl'] + email_hash
-        else:
-            href = self.backends[self.backend]['base'] + email_hash
-        href += "?size=%s" % size
-        # for some reason sizing doesn't work if you pass "default=default"
-        if self.default != 'default':
-            href += "&default=%s" % (self.default,)
-        return tag.img(src=href, class_='avatar %s' % class_, width=size, height=size).generate()
-
     def _metanav(self, req, context):
         data = req.session
 
@@ -194,10 +146,9 @@ class AvatarModule(Component):
         email = data['email']
 
         return [Transformer('//*/div[@id="metanav"]/ul/li[@class="first"]').prepend(
-            self._generate_avatar(
-                context,
+            self.backend.generate_avatar(
                 email,
-                "metanav-avatar",
+                'metanav-avatar',
                 self.metanav_size)),
         ]
 
@@ -216,7 +167,7 @@ class AvatarModule(Component):
         return filter_
 
     def _report_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'tickets' not in data and 'row_groups' not in data:
             return []
 
@@ -227,8 +178,7 @@ class AvatarModule(Component):
 
         def find_change(stream):
             author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip()
-            tag = self._generate_avatar(
-                        context,
+            tag = self.backend.generate_avatar(
                         author,
                         class_,
                         self.report_size)
@@ -237,7 +187,7 @@ class AvatarModule(Component):
         return [Transformer('//table[@class="listing tickets"]/tbody/tr/td[@class="owner"]|//table[@class="listing tickets"]/tbody/tr/td[@class="reporter"]').filter(find_change)]
 
     def _browser_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         filter_ =[]
         if not data.get('dir'):
             filter_.extend(self._browser_changeset_filter(context))
@@ -246,23 +196,22 @@ class AvatarModule(Component):
         return filter_
 
     def _browser_changeset_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'file' not in data or \
             not data['file'] or \
             'changeset' not in data['file']:
             return []
         author = data['file']['changeset'].author
-        author_data[author]  = None
+        self.backend.collect_author(author)
         return [lambda stream: Transformer('//table[@id="info"]//th').prepend(
-                self._generate_avatar(
-                        context,
+                self.backend.generate_avatar(
                         author,
-                        "browser-changeset",
+                        'browser-changeset',
                         self.browser_changeset_size))(stream),
         ]
 
     def _prefs_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'settings' not in data or \
             'session' not in data['settings'] or \
             'email' not in data['settings']['session']:
@@ -270,41 +219,41 @@ class AvatarModule(Component):
         else:
             email = data['settings']['session']['email']
 
+        backend_ = self.backend.get_backend()
         return [Transformer('//form[@id="userprefs"]/table').append(
                 tag.tr(
                         tag.th(
                                 tag.label(
-                                        self.backend.title() + ":",
-                                        for_="avatar",
+                                        self.select_backend.title() + ':',
+                                        for_='avatar',
                                 ),
                         ),
                         tag.td(
-                                self._generate_avatar(
-                                        context,
+                                self.backend.generate_avatar(
                                         email,
-                                        "prefs-avatar",
+                                        'prefs-avatar',
                                         self.prefs_form_size),
-                                " Change your avatar at ",
+                                ' Change your avatar at ',
                                 tag.a(
-                                        self.backends[self.backend]['url'],
-                                        href="http://" + self.backends[self.backend]['url'],
+                                        backend_['url'],
+                                        href='http://' + backend_['url'],
                                 ),
-                                class_="avatar prefs-avatar",
+                                class_='avatar prefs-avatar',
                         ),
                         class_="field",
                 )),
         ]
 
     def _log_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'changes' not in data:
             return []
         for change in data['changes'].values():
-            author_data[change.author] = None
+            self.backend.collect_author(change.author)
         return self._browser_lineitem_render_filter(context)
 
     def _search_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'results' not in data:
             return []
 
@@ -317,8 +266,7 @@ class AvatarModule(Component):
                 author = results_iter.next()['author']
             except StopIteration:
                 author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip() ## As a fallback.
-            tag = self._generate_avatar(
-                        context,
+            tag = self.backend.generate_avatar(
                         author,
                         'search-results',
                         self.search_results_size)
@@ -327,19 +275,18 @@ class AvatarModule(Component):
         return [Transformer('//dl[@id="results"]//span[@class="trac-author-user"]').filter(_find_result)]
 
     def _browser_lineitem_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'dir' not in data or 'changes' not in data['dir']:
             return []
         for trac_cset in data['dir']['changes'].values():
-            author_data[trac_cset.author] = None
+            self.backend.collect_author(trac_cset.author)
         return self._browser_lineitem_render_filter(context)
 
     def _browser_lineitem_render_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         def find_change(stream):
             author = stream[1][1]
-            tag = self._generate_avatar(
-                context,
+            tag = self.backend.generate_avatar(
                 author,
                 'browser-lineitem',
                 self.browser_lineitem_size)
@@ -348,37 +295,35 @@ class AvatarModule(Component):
         return [Transformer('//td[@class="author"]').filter(find_change)]
 
     def _ticket_reporter_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'ticket' not in data:
             return []
         author = data['ticket'].values['reporter']
-        author_data[author] = None
+        self.backend.collect_author(author)
 
         return [lambda stream: Transformer('//div[@id="ticket"]').prepend(
-                self._generate_avatar(
-                        context,
+                self.backend.generate_avatar(
                         author,
                         'ticket-reporter',
                         self.ticket_reporter_size))(stream),
         ]
 
     def _ticket_owner_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'ticket' not in data:
             return []
         author = data['ticket'].values['owner']
-        author_data[author] = None
+        self.backend.collect_author(author)
 
         return [lambda stream: Transformer('//td[@headers="h_owner"]').prepend(
-                self._generate_avatar(
-                        context,
+                self.backend.generate_avatar(
                         author,
                         'ticket-owner',
                         self.ticket_owner_size))(stream),
         ]
 
     def _ticket_comment_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'changes' not in data:
             return []
 
@@ -389,14 +334,13 @@ class AvatarModule(Component):
             except KeyError:
                 continue
             else:
-                author_data[author] = None
+                self.backend.collect_author(author)
                 apply_authors.insert(0, author)
 
         def _find_change(stream):
             stream = iter(stream)
             author = apply_authors.pop()
-            tag = self._generate_avatar(
-                    context,
+            tag = self.backend.generate_avatar(
                     author,
                     'ticket-comment',
                     self.ticket_comment_size)
@@ -405,20 +349,19 @@ class AvatarModule(Component):
         return [Transformer('//div[@id="changelog"]/div[@class="change"]/h3[@class="change"]').filter(_find_change)]
 
     def _ticket_comment_diff_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
 
         author = data['change']['author']
-        author_data[author] = None
+        self.backend.collect_author(author)
         return [lambda stream: Transformer('//dd[@class="author"]').prepend(
-                self._generate_avatar(
-                        context,
+                self.backend.generate_avatar(
                         author,
                         'ticket-comment-diff',
                         self.ticket_comment_diff_size))(stream),
         ]
 
     def _ticket_comment_history_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'history' not in data:
             return []
 
@@ -429,14 +372,13 @@ class AvatarModule(Component):
             except KeyError:
                 continue
             else:
-                author_data[author] = None
+                self.backend.collect_author(author)
                 apply_authors.insert(0, author)
 
         def _find_change(stream):
             stream = iter(stream)
             author = apply_authors.pop()
-            tag = self._generate_avatar(
-                    context,
+            tag = self.backend.generate_avatar(
                     author,
                     'ticket-comment-history',
                     self.ticket_comment_history_size)
@@ -445,21 +387,20 @@ class AvatarModule(Component):
         return [Transformer('//table[@id="fieldhist"]//td[@class="author"]').filter(_find_change)]
 
     def _timeline_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if 'events' not in data:
             return []
 
         apply_authors = []
         for event in reversed(data['events']):
             author = event['author']
-            author_data[author] = None
+            self.backend.collect_author(author)
             apply_authors.append(author)
 
         def find_change(stream):
             stream = iter(stream)
             author = apply_authors.pop()
-            tag = self._generate_avatar(
-                        context,
+            tag = self.backend.generate_avatar(
                         author,
                         'timeline',
                         self.timeline_size)
@@ -480,26 +421,24 @@ class AvatarModule(Component):
         return filter_
 
     def _wiki_diff_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
 
         author = data['change']['author']
-        author_data[author] = None
+        self.backend.collect_author(author)
         return [lambda stream: Transformer('//dd[@class="author"]').prepend(
-                self._generate_avatar(
-                        context,
+                self.backend.generate_avatar(
                         author,
                         'wiki-diff',
                         self.wiki_diff_size))(stream),
         ]
 
     def _wiki_history_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
 
         def _find_change(stream):
             author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip()
             stream = iter(stream)
-            tag = self._generate_avatar(
-                    context,
+            tag = self.backend.generate_avatar(
                     author,
                     'wiki-history',
                     self.wiki_history_size)
@@ -508,22 +447,21 @@ class AvatarModule(Component):
         return [Transformer('//td[@class="author"]').filter(_find_change)]
 
     def _wiki_version_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
 
         if 'page' not in data:
             return []
 
         author = data['page'].author
         return [lambda stream: Transformer('//table[@id="info"]//th').prepend(
-                self._generate_avatar(
-                    context,
+                self.backend.generate_avatar(
                     author,
                     'wiki-version',
                     self.wiki_version_size))(stream),
         ]
 
     def _attachment_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
         if not data.get('attachment'):
             return []
 
@@ -532,60 +470,25 @@ class AvatarModule(Component):
             return []
 
         return [Transformer('//table[@id="info"]//th').prepend(
-                self._generate_avatar(
-                            context,
+                self.backend.generate_avatar(
                             author,
                             'attachment-view',
                             self.attachment_view_size)),
         ]
 
     def _page_attachments_filter(self, context):
-        data, author_data = context['data'], context['author_data']
+        data = context['data']
 
         def _find_change(stream):
             author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip()
             stream = iter(stream)
-            tag = self._generate_avatar(
-                    context,
+            tag = self.backend.generate_avatar(
                     author,
                     'attachment-lineitem',
                     self.attachment_lineitem_size)
             return itertools.chain([next(stream)], tag, stream)
 
         return [Transformer('//div[@id="attachments"]/div/ul/li/span[@class="trac-author-user"]|//div[@id="attachments"]/div[@class="attachments"]/dl[@class="attachments"]/dt/span[@class="trac-author-user"]').filter(_find_change)]
-    # from trac source
-    _long_author_re = re.compile(r'.*<([^@]+)@([^@]+)>\s*|([^@]+)@([^@]+)')
-
-    def _avatar_slug(self, email):
-        if email is None:
-            email = ''
-        return hashlib.md5(email.lower()).hexdigest()
-
-    def _lookup_email(self, author_data):
-        author_names = [a for a in author_data if a]
-        lookup_authors = sorted([a for a in author_names if '@' not in a])
-        email_authors = set(author_names).difference(lookup_authors)
-
-        if lookup_authors:
-            for sid, email in self.env.db_query("""
-                    SELECT sid, value FROM session_attribute
-                    WHERE name=%%s AND sid IN (%s)
-                    """ % ','.join(['%s'] * len(lookup_authors)),
-                    ('email',) + tuple(lookup_authors)):
-                author_data[sid] = self._avatar_slug(email)
-
-        for author in email_authors:
-            author_info = self._long_author_re.match(author)
-            if author_info:
-                if author_info.group(1):
-                    name, host = author_info.group(1, 2)
-                elif author_info.group(3):
-                    name, host = author_info.group(3, 4)
-                else:
-                    continue
-                author_data[name] = \
-                    author_data[author] = \
-                    self._avatar_slug("%s@%s" % (name, host))
 
 class AvatarProvider(Component):
 
