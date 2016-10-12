@@ -99,7 +99,6 @@ class AvatarBackend():
             self.author_data[author] = None
 
     def lookup_author_data(self):
-        print('*** backend.author_data: {} ***'.format(self.author_data))
         author_names = [a for a in self.author_data if a]
         lookup_authors = sorted([a for a in author_names if '@' not in a])
         email_authors = set(author_names).difference(lookup_authors)
