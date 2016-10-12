@@ -50,8 +50,7 @@ setup(
     package_data = {
         'avatar': [
             'locale/*/LC_MESSAGES/*.mo',
-            'htdocs/*.js',
-            'htdocs/*.css',
+            'htdocs/css/*.css',
             'templates/*.html',
         ],
     },
