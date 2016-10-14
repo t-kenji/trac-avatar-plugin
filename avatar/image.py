@@ -89,10 +89,14 @@ class InitialAvatar(object):
      style="width: {width}px; height: {height}px; background-color: {color};">
   <text text-anchor="middle" y="50%" x="50%" dy="0.36em" pointer-events="auto" fill="#ffffff"
         font-family="HelveticaNeue-Light,Helvetica Neue Light,Helvetica Neue,Helvetica, Arial,Lucida Grande, sans-serif"
-        style="font-weight: 600; font-size: 64px;">
+        style="font-weight: {font-weight}; font-size: {font-size}px;">
     {initial}
   </text>
 </svg>"""
+
+    DEFAULT_SIZE = 128
+    DEFAULT_FONT_WEIGHT = 600
+    DEFAULT_FONT_SIZE = 72
 
     def __init__(self, username):
         self.username = username
@@ -105,11 +109,14 @@ class InitialAvatar(object):
     def create(self, width, height):
         colors = ColorHash(self.username)
 
+        ratio = float(width) / self.DEFAULT_SIZE
         svg_params = {
             'color': colors.hex,
             'initial': self.username[:2].upper(),
             'width': width,
             'height': height,
+            'font-weight': int(self.DEFAULT_FONT_WEIGHT * ratio),
+            'font-size': int(self.DEFAULT_FONT_SIZE * ratio),
         }
 
         return self.template.format(**svg_params)

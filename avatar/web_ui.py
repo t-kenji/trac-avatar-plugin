@@ -516,9 +516,15 @@ class AvatarProvider(Component):
 
     def process_request(self, req):
         username = 'anonymous'
-        match = re.search(r'(\w+)$', req.path_info)
-        if match:
-            email_hash = match.groups(1)[0]
+        email_hash = None
+        hash_match = re.search(r'(\w+)$', req.path_info)
+        if hash_match:
+            email_hash, = hash_match.groups(1)
+        width, height = self.AVATAR_WIDTH, self.AVATAR_HEIGHT
+        size_match = re.match(r'(?:s|size)=(\d+)', req.query_string)
+        if size_match:
+            size, = size_match.groups(1)
+            width = height = int(size)
 
         if email_hash:
             for sid, email, in self.env.db_query("""
@@ -546,7 +552,7 @@ class AvatarProvider(Component):
                         username = sid
 
         ia = InitialAvatar(username)
-        req.send(ia.create(self.AVATAR_WIDTH, self.AVATAR_HEIGHT), 'image/svg+xml')
+        req.send(ia.create(width, height), 'image/svg+xml')
 
     # IPreferencePanelProvider methods
 
