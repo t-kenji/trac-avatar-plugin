@@ -43,6 +43,7 @@ setup(
 
     install_requires = [
         'Trac >= 1.0dev',
+        'pillow',
         'colorhash',
     ],
 
