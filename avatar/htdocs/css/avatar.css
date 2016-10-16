@@ -94,6 +94,12 @@ td.avatar.prefs-avatar {
 .reports tbody td {
   padding: 0.4em 0.5em 0.1em 0.5em !important;
 }
+.tickets tbody td[class="owner"],
+.tickets tbody td[class="reporter"],
+.reports tbody td[class="owner"],
+.reports tbody td[class="reporter"] {
+  white-space: nowrap;
+}
 
 /* ticket comment diff */
 #overview dt.property {
