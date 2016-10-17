@@ -128,6 +128,8 @@ class AvatarBackend():
         self.author_data.clear()
 
     def generate_avatar(self, author, class_, size):
+        if author is None or len(author) == 0:
+            return tag.span()
         email_hash = self.author_data.get(author, None) or self._avatar_slug(author)
         if self.is_https:
             href = self.backends[self.backend]['base_ssl'] + email_hash
