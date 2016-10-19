@@ -145,7 +145,8 @@ class AvatarModule(Component):
 
         email = data['email']
 
-        return [Transformer('//*/div[@id="metanav"]/ul/li[@class="first"]').prepend(
+        xpath = '//*/div[@id="metanav"]/ul/li[@class="first"]'
+        return [Transformer(xpath).prepend(
             self.backend.generate_avatar(
                 email,
                 'metanav-avatar',
@@ -184,7 +185,8 @@ class AvatarModule(Component):
                         self.report_size)
             return itertools.chain([stream[0]], tag, stream[1:])
 
-        return [Transformer('//table[@class="listing tickets"]/tbody/tr/td[@class="owner"]|//table[@class="listing tickets"]/tbody/tr/td[@class="reporter"]').filter(find_change)]
+        xpath = '//table[@class="listing tickets"]/tbody/tr/td[@class="owner"]|//table[@class="listing tickets"]/tbody/tr/td[@class="reporter"]'
+        return [Transformer(xpath).filter(find_change)]
 
     def _browser_filter(self, context):
         data = context['data']
@@ -203,7 +205,8 @@ class AvatarModule(Component):
             return []
         author = data['file']['changeset'].author
         self.backend.collect_author(author)
-        return [lambda stream: Transformer('//table[@id="info"]//th').prepend(
+        xpath = '//table[@id="info"]//th'
+        return [lambda stream: Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                         author,
                         'browser-changeset',
@@ -220,7 +223,8 @@ class AvatarModule(Component):
             email = data['settings']['session']['email']
 
         backend_ = self.backend.get_backend()
-        return [Transformer('//form[@id="userprefs"]/table').append(
+        xpath = '//form[@id="userprefs"]/table'
+        return [Transformer(xpath).append(
                 tag.tr(
                         tag.th(
                                 tag.label(
@@ -272,7 +276,8 @@ class AvatarModule(Component):
                         self.search_results_size)
             return itertools.chain([stream[0]], tag, stream[1:])
 
-        return [Transformer('//dl[@id="results"]//span[@class="trac-author-user"]').filter(_find_result)]
+        xpath = '//dl[@id="results"]//span[@class="trac-author-user" or @class="trac-author"]'
+        return [Transformer(xpath).filter(_find_result)]
 
     def _browser_lineitem_filter(self, context):
         data = context['data']
@@ -292,7 +297,8 @@ class AvatarModule(Component):
                 self.browser_lineitem_size)
             return itertools.chain([stream[0]], tag, stream[1:])
 
-        return [Transformer('//td[@class="author"]').filter(find_change)]
+        xpath = '//td[@class="author"]'
+        return [Transformer(xpath).filter(find_change)]
 
     def _ticket_reporter_filter(self, context):
         data = context['data']
@@ -301,7 +307,8 @@ class AvatarModule(Component):
         author = data['ticket'].values['reporter']
         self.backend.collect_author(author)
 
-        return [lambda stream: Transformer('//div[@id="ticket"]').prepend(
+        xpath = '//div[@id="ticket"]'
+        return [lambda stream: Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                         author,
                         'ticket-reporter',
@@ -315,7 +322,8 @@ class AvatarModule(Component):
         author = data['ticket'].values['owner']
         self.backend.collect_author(author)
 
-        return [lambda stream: Transformer('//td[@headers="h_owner"]').prepend(
+        xpath = '//td[@headers="h_owner"]'
+        return [lambda stream: Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                         author,
                         'ticket-owner',
@@ -346,14 +354,16 @@ class AvatarModule(Component):
                     self.ticket_comment_size)
             return itertools.chain([next(stream)], tag, stream)
 
-        return [Transformer('//div[@id="changelog"]/div[@class="change"]/h3[@class="change"]').filter(_find_change)]
+        xpath = '//div[@id="changelog"]/div[@class="change"]/h3[@class="change"]'
+        return [Transformer(xpath).filter(_find_change)]
 
     def _ticket_comment_diff_filter(self, context):
         data = context['data']
 
         author = data['change']['author']
         self.backend.collect_author(author)
-        return [lambda stream: Transformer('//dd[@class="author"]').prepend(
+        xpath = '//dd[@class="author"]'
+        return [lambda stream: Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                         author,
                         'ticket-comment-diff',
@@ -384,7 +394,8 @@ class AvatarModule(Component):
                     self.ticket_comment_history_size)
             return itertools.chain([next(stream)], tag, stream)
 
-        return [Transformer('//table[@id="fieldhist"]//td[@class="author"]').filter(_find_change)]
+        xpath = '//table[@id="fieldhist"]//td[@class="author"]'
+        return [Transformer(xpath).filter(_find_change)]
 
     def _timeline_filter(self, context):
         data = context['data']
@@ -406,7 +417,8 @@ class AvatarModule(Component):
                         self.timeline_size)
             return itertools.chain(tag, stream)
 
-        return [Transformer('//div[@id="content"]/dl/dt/a/span[@class="time"]').filter(find_change)]
+        xpath = '//div[@id="content"]/dl/dt/a/span[@class="time"]'
+        return [Transformer(xpath).filter(find_change)]
 
     def _wiki_filter(self, context):
         query = context.get('query', '')
@@ -425,7 +437,8 @@ class AvatarModule(Component):
 
         author = data['change']['author']
         self.backend.collect_author(author)
-        return [lambda stream: Transformer('//dd[@class="author"]').prepend(
+        xpath = '//dd[@class="author"]'
+        return [lambda stream: Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                         author,
                         'wiki-diff',
@@ -444,7 +457,8 @@ class AvatarModule(Component):
                     self.wiki_history_size)
             return itertools.chain([next(stream)], tag, stream)
 
-        return [Transformer('//td[@class="author"]').filter(_find_change)]
+        xpath = '//td[@class="author"]'
+        return [Transformer(xpath).filter(_find_change)]
 
     def _wiki_version_filter(self, context):
         data = context['data']
@@ -453,7 +467,8 @@ class AvatarModule(Component):
             return []
 
         author = data['page'].author
-        return [lambda stream: Transformer('//table[@id="info"]//th').prepend(
+        xpath = '//table[@id="info"]//th'
+        return [lambda stream: Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                     author,
                     'wiki-version',
@@ -469,7 +484,8 @@ class AvatarModule(Component):
         if not author:
             return []
 
-        return [Transformer('//table[@id="info"]//th').prepend(
+        xpath = '//table[@id="info"]//th'
+        return [Transformer(xpath).prepend(
                 self.backend.generate_avatar(
                             author,
                             'attachment-view',
@@ -488,7 +504,9 @@ class AvatarModule(Component):
                     self.attachment_lineitem_size)
             return itertools.chain([next(stream)], tag, stream)
 
-        return [Transformer('//div[@id="attachments"]/div/ul/li/span[@class="trac-author-user"]|//div[@id="attachments"]/div[@class="attachments"]/dl[@class="attachments"]/dt/span[@class="trac-author-user"]').filter(_find_change)]
+        xpath  = '//div[@id="attachments"]/div/ul/li/span[@class="trac-author-user" or @class="trac-author"]'
+        xpath += '|//div[@id="attachments"]/div[@class="attachments"]/dl[@class="attachments"]/dt/span[@class="trac-author-user" or @class="trac-author"]'
+        return [Transformer(xpath).filter(_find_change)]
 
 class AvatarProvider(Component):
 
