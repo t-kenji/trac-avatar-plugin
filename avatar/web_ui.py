@@ -47,7 +47,7 @@ from trac.resource import ResourceNotFound
 from trac.util import get_reporter_id
 from trac.util.translation import domain_functions
 from trac.web.api import IRequestHandler, ITemplateStreamFilter
-from trac.web.chrome import ITemplateProvider, add_stylesheet
+from trac.web.chrome import ITemplateProvider, add_script, add_stylesheet
 from genshi.filters.transform import Transformer
 from genshi.builder import tag
 
@@ -82,6 +82,7 @@ class AvatarModule(Component):
                      doc="The name of the avatar service to use as a "
                          "backend.  Currently built-in, gravatar and libravatar "
                          "are supported.")
+    show_avatar_detail = Option('avatar', 'show_avatar_detail', default='disabled')
 
     def __init__(self):
 
@@ -127,6 +128,9 @@ class AvatarModule(Component):
         for f in filter_:
             if f is not None:
                 stream |= f
+
+        if self.show_avatar_detail == 'enabled':
+            add_script(req, 'avatar/js/avatar.js')
         add_stylesheet(req, 'avatar/css/avatar.css')
         return stream
 

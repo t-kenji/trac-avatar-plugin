@@ -29,7 +29,7 @@
 
 from setuptools import find_packages, setup
 
-version = '0.0.1'
+version = '0.0.2'
 
 setup(
     name = 'TracAvatarPlugin',
@@ -52,6 +52,7 @@ setup(
         'avatar': [
             'locale/*/LC_MESSAGES/*.mo',
             'htdocs/css/*.css',
+            'htdocs/js/*.js',
             'templates/*.html',
         ],
     },

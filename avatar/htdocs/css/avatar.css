@@ -1,6 +1,11 @@
 img.avatar {
 }
 
+img.avatar.detail {
+  width: 128px;
+  height: 128px;
+}
+
 img.avatar.metanav-avatar {
   margin: 0 5px -5px 0;
 }
