@@ -265,15 +265,8 @@ class AvatarModule(Component):
         if 'results' not in data:
             return []
 
-        ## The stream contains this stupid "By ethan" instead of just "ethan"
-        ## so we'll rely on the ordering of the data instead, 
-        ## and file a ticket with Trac core eventually
-        results_iter = iter(data['results'])
         def _find_result(stream):
-            try:
-                author = results_iter.next()['author']
-            except StopIteration:
-                author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip() ## As a fallback.
+            author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip() ## As a fallback.
             tag = self.backend.generate_avatar(
                         author,
                         'search-results',
@@ -454,12 +447,11 @@ class AvatarModule(Component):
 
         def _find_change(stream):
             author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip()
-            stream = iter(stream)
             tag = self.backend.generate_avatar(
                     author,
                     'wiki-history',
                     self.wiki_history_size)
-            return itertools.chain([next(stream)], tag, stream)
+            return itertools.chain([stream[0]], tag, stream[1:])
 
         xpath = '//td[@class="author"]'
         return [Transformer(xpath).filter(_find_change)]
@@ -501,12 +493,11 @@ class AvatarModule(Component):
 
         def _find_change(stream):
             author = ''.join(stream_part[1] for stream_part in stream if stream_part[0] == 'TEXT').strip()
-            stream = iter(stream)
             tag = self.backend.generate_avatar(
                     author,
                     'attachment-lineitem',
                     self.attachment_lineitem_size)
-            return itertools.chain([next(stream)], tag, stream)
+            return itertools.chain([stream[0]], tag, stream[1:])
 
         xpath  = '//div[@id="attachments"]/div/ul/li/span[@class="trac-author-user" or @class="trac-author"]'
         xpath += '|//div[@id="attachments"]/div[@class="attachments"]/dl[@class="attachments"]/dt/span[@class="trac-author-user" or @class="trac-author"]'
