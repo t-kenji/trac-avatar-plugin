@@ -51,7 +51,7 @@ from trac.web.chrome import ITemplateProvider, add_script, add_stylesheet
 from genshi.filters.transform import Transformer
 from genshi.builder import tag
 
-from image import PictureAvatar, InitialAvatar
+from image import PictureAvatar, InitialAvatar, SilhouetteAvatar
 from backend import AvatarBackend
 
 _, tag_, N_, add_domain = domain_functions('avatar',
@@ -528,7 +528,6 @@ class AvatarProvider(Component):
         return match
 
     def process_request(self, req):
-        username = 'anonymous'
         match = re.search(r'(\w+)$', req.path_info)
         if match:
             email_hash = match.groups(1)[0]
@@ -556,10 +555,13 @@ class AvatarProvider(Component):
                         req.send_file(filepath, mime_type)
                         return
                     else:
-                        username = sid
+                        ia = InitialAvatar(sid)
 
-        ia = InitialAvatar(username)
-        req.send(ia.create(self.AVATAR_WIDTH, self.AVATAR_HEIGHT), 'image/svg+xml')
+                        req.send(ia.create(self.AVATAR_WIDTH, self.AVATAR_HEIGHT), 'image/svg+xml')
+                        return
+
+        sa = SilhouetteAvatar(email_hash)
+        req.send(sa.create(self.AVATAR_WIDTH, self.AVATAR_HEIGHT), 'image/svg+xml')
 
     # IPreferencePanelProvider methods
 
