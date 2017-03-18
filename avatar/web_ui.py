@@ -572,14 +572,14 @@ class AvatarProvider(Component):
         author = get_reporter_id(req, 'author')
 
         if req.method == 'POST':
-            if req.args.has_key('user_profile_avatar_initialize'):
-                if req.session['avatar']:
+            if 'user_profile_avatar_initialize' in req.args:
+                if 'avatar' in req.session:
                     del req.session['avatar']
 
-                    req.redirect(req.href.prefs(panel or None))
-                    return
+                req.redirect(req.href.prefs(panel or None))
+                return
 
-            if req.args.has_key('user_profile_avatar'):
+            if 'user_profile_avatar' in req.args:
                 upload = req.args.get('user_profile_avatar', None)
                 if upload is None or not hasattr(upload, 'filename') or not upload.filename:
                     raise TracError(_('No file uploaded'))
