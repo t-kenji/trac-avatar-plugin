@@ -144,4 +144,6 @@ class AvatarBackend():
     def _avatar_slug(self, email):
         if email is None:
             email = ''
+        if isinstance(email, unicode):
+            email = email.encode('utf-8')
         return hashlib.md5(email.lower()).hexdigest()
