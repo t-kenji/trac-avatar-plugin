@@ -72,6 +72,10 @@ class AvatarBackend():
         self.author_data = {}
 
         abs_href = self.env.abs_href()
+	if not abs_href.startswith('http'):
+	    # maybe called by trac-admin command.
+	    return
+
         self.is_https =  abs_href.startswith('https://')
         match = re.match(r'https?://(?P<domain>[\w\d\.\-_\:]+)(?P<subdirectory>/[\w\d\.\-_/]*)?', abs_href)
         if match.lastgroup == 'subdirectory':
