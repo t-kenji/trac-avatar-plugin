@@ -121,8 +121,11 @@ class AvatarModule(Component):
         elif self.select_backend != 'built-in' and req.path_info == '/prefs':
             filter_.extend(self._prefs_filter(context))
 
-        if 'attachments' in data and data.get('attachments', {}).get('attachments'):
-            filter_.extend(self._page_attachments_filter(context))
+        try:
+            if 'attachments' in data and data.get('attachments').get('attachments'):
+                filter_.extend(self._page_attachments_filter(context))
+        except:
+            pass
 
         self.backend.lookup_author_data()
         for f in filter_:
