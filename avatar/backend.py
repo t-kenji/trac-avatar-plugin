@@ -139,7 +139,7 @@ class AvatarBackend():
             href = self.backends[self.backend]['base_ssl'] + email_hash
         else:
             href = self.backends[self.backend]['base'] + email_hash
-        href += "?size=%s" % size
+
         # for some reason sizing doesn't work if you pass "default=default"
         if self.default != 'default':
             href += "&default=%s" % (self.default,)

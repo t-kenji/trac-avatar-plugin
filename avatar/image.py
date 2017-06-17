@@ -34,17 +34,49 @@ import re
 import struct
 
 from PIL import Image
+from StringIO import StringIO
 from colorhash import ColorHash
+from cairosvg import svg2png
 
-class PictureAvatar(object):
+class Avatar(object):
+    """
+    Avatar object skeleton class.
+    """
+
+    def get_png(width, height):
+        raise 'must be override'
+
+class PictureAvatar(Avatar):
     """
     Picture avatar class.
     """
-    
-    def open(self, filename, mode='r'):
-        return Image.open(filename, mode)
 
-    def fromfiledata(self, fd, filename):
+    def __init__(self, filename, fd=None):
+        if fd is None:
+            self.image = Image.open(filename, 'r')
+        else:
+            self.image = self._fromfiledata(fd, filename)
+
+    @property
+    def width(self):
+        return self.image.width
+
+    @property
+    def height(self):
+        return self.image.height
+
+    def resize(self, width, height):
+        self.image.thumbnail((width, height))
+
+    def save_to_png(self, path):
+        self.image.save(path, 'png')
+
+    def get_png(self):
+        stream = StringIO()
+        self.image.save(stream, 'png')
+        return stream.getvalue()
+
+    def _fromfiledata(self, fd, filename):
         """
         PIL.Image object from file data object.
         """
@@ -78,43 +110,49 @@ class PictureAvatar(object):
 
         raise IOError('Cannot identify image file {}'.format(filename))
 
-class InitialAvatar(object):
+class InitialAvatar(Avatar):
     """
     Initial avatar class.
     """
 
     SVG_TEMPLATE = """\
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" pointer-events="none" width="{width}px" height="{height}px"
-     style="width: {width}px; height: {height}px; background-color: {color};">
+<svg xmlns="http://www.w3.org/2000/svg" pointer-events="none"
+     x="0px" y="0px" width="{width}px" height="{height}px" viewBox="0 0 256 256">
+  <rect x="0" y="0" width="256" height="256" fill="{color}" />
   <text text-anchor="middle" y="50%" x="50%" dy="0.36em" pointer-events="auto" fill="#ffffff"
-        font-family="HelveticaNeue-Light,Helvetica Neue Light,Helvetica Neue,Helvetica, Arial,Lucida Grande, sans-serif"
-        style="font-weight: 600; font-size: 64px;">
+        font-family="sans-serif" font-weight="bolder" font-size="220px">
     {initial}
   </text>
 </svg>"""
 
-    def __init__(self, username):
+    def __init__(self, username, width, height):
         self.username = username
         self.template = self.SVG_TEMPLATE
+        self.width    = width
+        self.height   = height
 
     def set_template(self, template):
         if template:
             self.template = template
 
-    def create(self, width, height):
-        colors = ColorHash(self.username)
+    def create(self):
+        color = ColorHash(self.username)
+        print('name: {}, color: {}'.format(self.username, color.hex))
 
         svg_params = {
-            'color': colors.hex,
+            'color': color.hex,
             'initial': self.username[:2].upper(),
-            'width': width,
-            'height': height,
+            'width': self.width,
+            'height': self.height,
         }
 
         return self.template.format(**svg_params)
 
-class SilhouetteAvatar(object):
+    def get_png(self):
+        return svg2png(bytestring=self.create())
+
+class SilhouetteAvatar(Avatar):
     """
     Silhouette avatar class.
     """
@@ -132,21 +170,26 @@ class SilhouetteAvatar(object):
     C248,221.124,227.491,209.396,195.919,197.89"/>
 </svg>"""
 
-    def __init__(self, username):
+    def __init__(self, username, width, height):
         self.username = username
         self.template = self.SVG_TEMPLATE
+        self.width    = width
+        self.height   = height
 
     def set_template(self, template):
         if template:
             self.template = template
 
-    def create(self, width, height):
-        colors = ColorHash(self.username)
+    def create(self):
+        color = ColorHash(self.username)
 
         svg_params = {
-            'color': colors.hex,
-            'width': width,
-            'height': height,
+            'color': color.hex,
+            'width': self.width,
+            'height': self.height,
         }
 
         return self.template.format(**svg_params)
+
+    def get_png(self):
+        return svg2png(bytestring=self.create())

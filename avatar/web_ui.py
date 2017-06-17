@@ -508,8 +508,7 @@ class AvatarModule(Component):
 
 class AvatarProvider(Component):
 
-    AVATAR_WIDTH = 128
-    AVATAR_HEIGHT = 128
+    AVATAR_SIZE = 128
 
     implements(IRequestHandler,
                IPreferencePanelProvider,
@@ -535,6 +534,14 @@ class AvatarProvider(Component):
         if match:
             email_hash = match.groups(1)[0]
 
+        m = re.match(r's=(?P<size>\d+)', req.query_string)
+        if m:
+            size = int(m.group('size'))
+        else:
+            size = self.AVATAR_SIZE
+        fmt = 'png'
+        mime_type = 'image/{}'.format(fmt)
+
         if email_hash:
             for sid, email, in self.env.db_query("""
                     SELECT sid, value FROM session_attribute
@@ -552,19 +559,17 @@ class AvatarProvider(Component):
                             (sid,))
                     if result is not None and len(result) > 0:
                         filepath, = result[0]
-                        image = PictureAvatar().open(filepath, 'r')
-                        mime_type = 'image/{}'.format(image.format)
-
-                        req.send_file(filepath, mime_type)
+                        pa = PictureAvatar(filepath)
+                        pa.resize(size, size)
+                        req.send(pa.get_png(), mime_type)
                         return
                     else:
-                        ia = InitialAvatar(sid)
-
-                        req.send(ia.create(self.AVATAR_WIDTH, self.AVATAR_HEIGHT), 'image/svg+xml')
+                        ia = InitialAvatar(sid, size, size)
+                        req.send(ia.get_png(), mime_type)
                         return
 
-        sa = SilhouetteAvatar(email_hash)
-        req.send(sa.create(self.AVATAR_WIDTH, self.AVATAR_HEIGHT), 'image/svg+xml')
+        sa = SilhouetteAvatar(email_hash, size, size)
+        req.send(sa.get_png(), mime_type)
 
     # IPreferencePanelProvider methods
 
@@ -601,7 +606,7 @@ class AvatarProvider(Component):
                 filename = os.path.basename(filename)
 
                 try:
-                    image = PictureAvatar().fromfiledata(upload.file, filename)
+                    pa = PictureAvatar(filename, upload.file)
                 except:
                     raise TracError(_('Can\'t upload non image file'))
 
@@ -612,9 +617,9 @@ class AvatarProvider(Component):
 
                 req.session['avatar'] = filepath
 
-                if image.width > self.AVATAR_WIDTH or image.height > self.AVATAR_HEIGHT:
-                    image.thumbnail((self.AVATAR_WIDTH, self.AVATAR_HEIGHT))
-                image.save(filepath, image.format)
+                if pa.width > self.AVATAR_SIZE or pa.height > self.AVATAR_SIZE:
+                    pa.resize(self.AVATAR_SIZE, self.AVATAR_SIZE)
+                pa.save_to_png(filepath)
                 self.env.log.info('New avatar uploaded by {}'.format(author))
 
             req.redirect(req.href.prefs(panel or None))
