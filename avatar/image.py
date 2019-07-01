@@ -138,7 +138,6 @@ class InitialAvatar(Avatar):
 
     def create(self):
         color = ColorHash(self.username)
-        print('name: {}, color: {}'.format(self.username, color.hex))
 
         svg_params = {
             'color': color.hex,

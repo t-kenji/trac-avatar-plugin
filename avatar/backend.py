@@ -44,8 +44,11 @@ class AvatarBackend():
                          "use if the email address does not match.")
     backend = Option('avatar', 'backend', default='built-in',
                      doc="The name of the avatar service to use as a "
-                         "backend.  Currently built-in, gravatar and libravatar "
-                         "are supported.")
+                         "backend.  Currently built-in, gravatar, libravatar "
+                         "and custom are supported.")
+    custom_backend = Option('avatar', 'custom_backend', default='',
+                            doc="The URL of the avator service to use as a "
+                                "custom backend.")
 
     # A mapping of possible backends to their peculiarities
     external_backends = {
@@ -79,20 +82,23 @@ class AvatarBackend():
         self.is_https =  abs_href.startswith('https://')
         match = re.match(r'https?://(?P<domain>[\w\d\.\-_\:]+)(?P<subdirectory>/[\w\d\.\-_/]*)?', abs_href)
         if match.lastgroup == 'subdirectory':
-            url = '{}{}/prefs/avatar'.format(match.group('domain'), match.group('subdirectory'))
-            base = 'http://{}{}/avatar/'.format(match.group('domain'), match.group('subdirectory'))
-            base_ssl = 'https://{}{}/avatar/'.format(match.group('domain'), match.group('subdirectory'))
+            self.backends.update({'built-in': {
+                'url': '{}{}'.format(match.group('domain'), match.group('subdirectory')),
+                'base': 'http://{}{}/avatar/'.format(match.group('domain'), match.group('subdirectory')),
+                'base_ssl': 'https://{}{}/avatar/'.format(match.group('domain'), match.group('subdirectory')),
+            }})
         else:
-            url = '{}/prefs/avatar'.format(match.group('domain'))
-            base = 'http://{}/avatar/'.format(match.group('domain'))
-            base_ssl = 'https://{}/avatar/'.format(match.group('domain'))
+            self.backends.update({'built-in': {
+                'url': '{}'.format(match.group('domain')),
+                'base': 'http://{}/avatar/'.format(match.group('domain')),
+                'base_ssl': 'https://{}/avatar/'.format(match.group('domain')),
+            }})
 
-        builtin = {
-            'url': url,
-            'base': base,
-            'base_ssl': base_ssl,
-        }
-        self.backends.update({ 'built-in': builtin })
+        self.backends.update({'custom': {
+            'url': 'custom',
+            'base': self.custom_backend,
+            'base_ssl': self.custom_backend,
+        }})
         self.backends.update(self.external_backends)
 
     def get_backend(self):
